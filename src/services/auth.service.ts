@@ -8,7 +8,9 @@ export const registerUser = async (
 ) => {
   const existingUser = await User.findOne({ email });
 
-  if (!existingUser) {
+  if (existingUser) {
     throw new Error("User already exists");
   }
+
+  const hashedPassword = bcrypt.hash(password, 10);
 };
