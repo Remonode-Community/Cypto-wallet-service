@@ -12,5 +12,5 @@ export const registerUser = async (
     throw new Error("User already exists");
   }
 
-  const hashedPassword = bcrypt.hash(password, 10);
+  const hashedPassword = await bcrypt.hash(password, 10);
 };
