@@ -1,9 +1,7 @@
 import type { Request, Response } from "express";
-import bcrypt from "bcrypt";
+import { registerUser, loginUser } from "../services/auth.service.js";
 
-import { registerUser } from "../services/auth.service.js";
-import User from "../models/User.js";
-
+// Register
 export const register = async (req: Request, res: Response) => {
   try {
     const { username, email, password } = req.body;
@@ -32,6 +30,7 @@ export const register = async (req: Request, res: Response) => {
   }
 };
 
+// Login
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
