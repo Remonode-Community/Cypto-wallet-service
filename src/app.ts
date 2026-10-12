@@ -4,6 +4,7 @@ import authRoutes from "./routes/auth.routes.js";
 
 import { authenticate } from "./middleware/auth.middleware.js";
 import { requireRole } from "./middleware/role.middleware.js";
+import notificationRoutes from "./routes/notification.routes.js";
 
 const app = express();
 
@@ -11,6 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 app.get("/test", (req, res) => {
   res.json({
