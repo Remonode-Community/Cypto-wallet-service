@@ -1,6 +1,14 @@
 node_modules
 dist
 .env
+.env.*
+!.env.example
 .git
-.DS_Store
+.gitignore
+.dockerignore
+docker-compose*.yml
+Dockerfile
+nginx
 coverage
+*.log
+.DS_Store

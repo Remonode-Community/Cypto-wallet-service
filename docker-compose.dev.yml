@@ -1,0 +1,99 @@
+name: crypto-wallet-service-dev
+
+services:
+  # ---------- API in watch mode (tsx watch) ----------
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+    image: crypto-wallet-api:dev
+    container_name: crypto-wallet-api-dev
+    command: npm run dev
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      PORT: ${PORT:-8000}
+      MONGODB_URI: ${MONGODB_URI}
+      REDIS_URL: ${REDIS_URL}
+    ports:
+      - "${DEV_API_PORT:-8000}:8000"
+    volumes:
+      - ./src:/app/src
+      - /app/node_modules
+    networks:
+      - backend
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ---------- MongoDB (same auth + replica set as production) ----------
+  mongo:
+    image: mongo:8.0
+    container_name: crypto-wallet-mongo-dev
+    restart: unless-stopped
+    entrypoint: ["/bin/bash", "/entrypoint-wrapper.sh"]
+    volumes:
+      - ./mongo/entrypoint.sh:/entrypoint-wrapper.sh:ro
+      - mongo_data_dev:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-crypto_wallet}
+      MONGO_REPLSET_KEYFILE: ${MONGO_REPLSET_KEYFILE}
+    networks:
+      - backend
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >
+          mongosh --quiet
+          --username "$${MONGO_INITDB_ROOT_USERNAME}"
+          --password "$${MONGO_INITDB_ROOT_PASSWORD}"
+          --authenticationDatabase admin
+          --eval 'try { rs.status().ok } catch (e) { rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "mongo:27017" }] }).ok }'
+          | grep -q 1
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 40s
+
+  # ---------- Redis ----------
+  redis:
+    image: redis:8-alpine
+    container_name: crypto-wallet-redis-dev
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD}
+      - --maxmemory
+      - ${REDIS_MAXMEMORY:-256mb}
+      - --maxmemory-policy
+      - ${REDIS_MAXMEMORY_POLICY:-volatile-lru}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - redis_data_dev:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  mongo_data_dev:
+  redis_data_dev:
